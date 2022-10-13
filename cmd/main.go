@@ -1,8 +1,9 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"github.com/veandco/go-sdl2/img"
+	"github.com/MikhailSolovev/Flappy-Gopher/internal"
 	"github.com/veandco/go-sdl2/sdl"
 	"github.com/veandco/go-sdl2/ttf"
 	"log"
@@ -31,31 +32,23 @@ func main() {
 		log.Fatalf("could not draw title: %v", err)
 	}
 
-	time.Sleep(5 * time.Second)
+	time.Sleep(1 * time.Second)
 
-	if err := drawBackground(r); err != nil {
-		log.Fatalf("could not draw background: %v", err)
-	}
-
-	time.Sleep(1000 * time.Second)
-}
-
-func drawBackground(r *sdl.Renderer) error {
-	r.Clear()
-
-	t, err := img.LoadTexture(r, "./pkg/imgs/background.png")
+	s, err := internal.NewScene(r)
 	if err != nil {
-		return fmt.Errorf("could not load background image: %v", err)
+		log.Fatalf("could not create scene: %v", err)
 	}
-	defer t.Destroy()
+	defer s.Destroy(r)
 
-	if err := r.Copy(t, nil, nil); err != nil {
-		return fmt.Errorf("could not copy background: %v", err)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	select {
+	case err := <-s.Run(ctx, r):
+		log.Fatalf("could not paint scene: %v", err)
+	case <-time.After(10 * time.Second):
+		return
 	}
-
-	r.Present()
-
-	return nil
 }
 
 func drawTitle(r *sdl.Renderer, title string) error {
